@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contact – SemiCrypto</title>
+
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="supabase.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+
+<body>
+
+<!-- NAVBAR -->
+<nav class="nav">
+    <a href="index.html" class="logo">SemiCrypto</a>
+
+    <div class="nav-links">
+        <a href="learn.html">Learn</a>
+        <a href="blog.html">Blog</a>
+        <a href="merch.html">Store</a>
+        <a href="contact.html">Contact</a>
+    </div>
+
+    <button id="loginBtn">Login</button>
+    <button id="logoutBtn" class="hidden">Logout</button>
+</nav>
+
+<!-- PAGE CONTENT -->
+<section class="page">
+    <h2>Contact Us</h2>
+
+    <form class="contact-form">
+        <input type="text" placeholder="Your Name" required />
+        <input type="email" placeholder="Your Email" required />
+        <textarea placeholder="Your Message" rows="6" required></textarea>
+        <button type="submit">Send Message</button>
+    </form>
+</section>
+
+</body>
+</html>
