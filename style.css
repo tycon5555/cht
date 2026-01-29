@@ -1,4 +1,4 @@
-/* Reset */
+/* RESET */
 * {
     margin: 0;
     padding: 0;
@@ -9,6 +9,7 @@ body {
     background: #000;
     color: #fff;
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    overflow-x: hidden;
 }
 
 /* ===== NAVBAR ===== */
@@ -56,7 +57,7 @@ button {
 }
 
 button:hover {
-    opacity: 0.8;
+    opacity: 0.75;
 }
 
 .hidden { display: none; }
@@ -88,7 +89,7 @@ button:hover {
     opacity: 0.1;
 }
 
-/* ===== HERO ===== */
+/* ===== HERO SECTION ===== */
 .hero {
     text-align: center;
     padding: 180px 20px;
@@ -122,6 +123,23 @@ button:hover {
     transform: scale(1.05);
 }
 
+/* ===== PAGE WRAPPER ===== */
+.page {
+    padding: 40px;
+    max-width: 1100px;
+    margin: auto;
+}
+
+.page h2 {
+    font-size: 36px;
+    margin-bottom: 10px;
+}
+
+.sub {
+    color: #aaa;
+    margin-bottom: 20px;
+}
+
 /* ===== FOOTER ===== */
 .footer {
     margin-top: 120px;
@@ -131,3 +149,87 @@ button:hover {
     padding-bottom: 40px;
 }
 
+/* ============================================================
+   PREMIUM CHAT STYLING
+   ============================================================ */
+
+/* CHAT BOX */
+.chat-box {
+    background: rgba(255,255,255,0.05);
+    height: 500px;
+    border-radius: 18px;
+    padding: 20px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+}
+
+.msg {
+    margin-bottom: 14px;
+    animation: fadeIn 0.3s ease;
+}
+
+.bubble {
+    background: #111;
+    padding: 14px 18px;
+    border-radius: 14px;
+    width: fit-content;
+    max-width: 70%;
+    border: 1px solid rgba(255,255,255,0.08);
+}
+
+.bubble strong {
+    font-size: 14px;
+    color: #fff;
+    font-weight: 600;
+}
+
+.timestamp {
+    font-size: 10px;
+    color: #777;
+    float: right;
+    margin-top: 5px;
+}
+
+/* TYPING */
+.typing {
+    font-size: 14px;
+    color: #888;
+    margin-bottom: 10px;
+    display: none;
+}
+
+.typing.active {
+    display: block;
+}
+
+/* INPUT AREA */
+.chat-input-area {
+    display: flex;
+    gap: 10px;
+}
+
+.chat-input-area input {
+    flex: 1;
+    padding: 14px;
+    border-radius: 12px;
+    border: none;
+    outline: none;
+    background: #fff;
+    color: #000;
+    font-size: 16px;
+}
+
+.chat-input-area button {
+    padding: 14px 24px;
+    border-radius: 12px;
+    background: #fff;
+    color: #000;
+    font-weight: 600;
+    font-size: 16px;
+}
+
+/* ANIMATION */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
