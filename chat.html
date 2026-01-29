@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Global Chat – SemiCrypto</title>
+
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="supabase.js" defer></script>
+</head>
+
+<body>
+
+<!-- NAVBAR -->
+<nav class="nav">
+    <a href="index.html" class="logo">SemiCrypto</a>
+    <div class="nav-links">
+        <a href="learn.html">Learn</a>
+        <a href="blog.html">Blog</a>
+        <a href="chat.html">Chat</a>
+    </div>
+
+    <button id="loginBtn">Login</button>
+    <button id="logoutBtn" class="hidden">Logout</button>
+</nav>
+
+
+<!-- CHAT HEADER -->
+<section class="page">
+    <h2>Global Chat Room</h2>
+    <p class="sub">Everyone can see your messages.</p>
+
+    <div id="messages" class="chat-box"></div>
+
+    <div id="typingIndicator" class="typing">Someone is typing...</div>
+
+    <div class="chat-input-area">
+        <input id="msgInput" type="text" placeholder="Type a message..." maxlength="200">
+        <button id="sendBtn">Send</button>
+    </div>
+</section>
+
+
+<script>
+// Elements
+const msgInput = document.getElementById("msgInput");
+const sendBtn = document.getElementById("sendBtn");
+const messagesBox = document.getElementById("messages");
+const typingIndicator = document.getElementById("typingIndicator");
+
+// Cooldown
+let canSend = true;
+
+// Load Messages
+async function loadMessages() {
+    let { data } = await supabaseClient
+        .from("chat")
+        .select("*")
+        .order("created_at", { ascending: true });
+
+    messagesBox.innerHTML = "";
+
+    data.forEach(msg => {
+        addMessage(msg.username, msg.message, msg.created_at);
+    });
+
+    messagesBox.scrollTop = messagesBox.scrollHeight;
+}
+
+// Render Message
+function addMessage(username, text, time) {
+    const div = document.createElement("div");
+    div.classList.add("msg");
+
+    const prettyTime = new Date(time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+    div.innerHTML = `
+        <div class="bubble">
+            <strong>${username}</strong><br>
+            ${text}
+            <span class="timestamp">${prettyTime}</span>
+        </div>
+    `;
+
+    messagesBox.appendChild(div);
+}
+
+// Send Message
+sendBtn.onclick = async () => sendMessage();
+msgInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") sendMessage();
+});
+
+async function sendMessage() {
+    if (!canSend) return;
+
+    const text = msgInput.value.trim();
+    if (text === "") return;
+
+    canSend = false;
+    setTimeout(() => canSend = true, 2000); // 2 sec cooldown
+
+    const { data: userData } = await supabaseClient.auth.getUser();
+    const uid = userData.user.id;
+
+    let { data: profile } = await supabaseClient
+        .from("profiles")
+        .select("first_name, last_name")
+        .eq("id", uid)
+        .single();
+
+    const username = `${profile.first_name} ${profile.last_name}`;
+
+    await supabaseClient.from("chat").insert({
+        username,
+        message: text
+    });
+
+    msgInput.value = "";
+
+    // stop typing
+    supabaseClient.from("chat").update({ typing: false }).eq("id", uid);
+}
+
+// Typing indicator
+msgInput.oninput = async () => {
+    const { data: userData } = await supabaseClient.auth.getUser();
+    const uid = userData.user.id;
+
+    supabaseClient
+        .from("typing_status")
+        .update({ typing: true })
+        .eq("user_id", uid);
+
+    setTimeout(() => {
+        supabaseClient
+            .from("typing_status")
+            .update({ typing: false })
+            .eq("user_id", uid);
+    }, 1500);
+};
+
+// Realtime New Messages
+supabaseClient
+  .channel("public:chat")
+  .on("postgres_changes",
+      { event: "INSERT", schema: "public", table: "chat" },
+      payload => {
+        addMessage(payload.new.username, payload.new.message, payload.new.created_at);
+        messagesBox.scrollTop = messagesBox.scrollHeight;
+      }
+  )
+  .subscribe();
+
+loadMessages();
+</script>
+
+</body>
+</html>
