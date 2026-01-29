@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Setup Profile – SemiCrypto</title>
+
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="supabase.js" defer></script>
+
+  <style>
+    .form-box {
+      max-width: 450px;
+      margin: 120px auto;
+      background: rgba(255,255,255,0.06);
+      padding: 30px;
+      border-radius: 20px;
+    }
+    .form-box input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      border-radius: 12px;
+      border: none;
+    }
+    .form-box button {
+      width: 100%;
+      font-size: 18px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="form-box">
+  <h2 style="text-align:center; margin-bottom:20px;">Complete Your Profile</h2>
+
+  <input id="firstName" type="text" placeholder="First Name" required>
+  <input id="middleName" type="text" placeholder="Middle Name (Optional)">
+  <input id="lastName" type="text" placeholder="Last Name" required>
+  <input id="dob" type="date" placeholder="Date of Birth" required>
+
+  <button onclick="saveProfile()">Continue</button>
+</div>
+
+<script>
+async function saveProfile() {
+  const first_name = document.getElementById("firstName").value;
+  const middle_name = document.getElementById("middleName").value;
+  const last_name = document.getElementById("lastName").value;
+  const dob = document.getElementById("dob").value;
+
+  const { data: { user } } = await supabaseClient.auth.getUser();
+
+  if (!user) {
+    alert("User not logged in");
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("profiles")
+    .insert({
+      id: user.id,
+      first_name,
+      middle_name,
+      last_name,
+      dob
+    });
+
+  if (error) {
+    alert("Error: " + error.message);
+  } else {
+    window.location.href = "index.html";
+  }
+}
+</script>
+
+</body>
+</html>
