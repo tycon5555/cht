@@ -428,3 +428,249 @@ async fn get_user_moderation_status(
     
     // Get report count
     let report_count = sqlx::query!(
+        r#"
+        SELECT COUNT(*) as count FROM reports WHERE target_id = $1 AND target_type = 'user'
+        "#,
+        user_id
+    )
+    .fetch_one(&state.db_pool)
+    .await?;
+    
+    let status = UserModerationStatus {
+        user_id,
+        active_restrictions: active_restrictions
+            .into_iter()
+            .map(|r| ActiveRestriction {
+                restriction_type: r.restriction_type,
+                expires_at: r.expires_at,
+                reason: r.reason,
+            })
+            .collect(),
+        total_reports: report_count.count.unwrap_or(0) as u32,
+        is_restricted: !active_restrictions.is_empty(),
+    };
+    
+    Ok(Json(status))
+}
+
+async fn get_moderation_stats(
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<ModerationStats>, AppError> {
+    let stats = sqlx::query!(
+        r#"
+        SELECT 
+            COUNT(*) FILTER (WHERE status = 'pending') as pending_count,
+            COUNT(*) FILTER (WHERE status = 'investigating') as investigating_count,
+            COUNT(*) FILTER (WHERE status = 'resolved') as resolved_count,
+            COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '24 hours') as last_24h_count,
+            AVG(EXTRACT(EPOCH FROM (resolved_at - created_at))) as avg_resolution_time_seconds
+        FROM reports
+        "#
+    )
+    .fetch_one(&state.db_pool)
+    .await?;
+    
+    let mod_stats = ModerationStats {
+        pending_reports: stats.pending_count.unwrap_or(0) as u32,
+        investigating_reports: stats.investigating_count.unwrap_or(0) as u32,
+        resolved_reports: stats.resolved_count.unwrap_or(0) as u32,
+        last_24h_reports: stats.last_24h_count.unwrap_or(0) as u32,
+        avg_resolution_time_seconds: stats.avg_resolution_time_seconds,
+    };
+    
+    Ok(Json(mod_stats))
+}
+
+// Helper functions
+async fn validate_report_target(
+    db_pool: &PgPool,
+    target_id: &str,
+    target_type: &ReportTargetType,
+) -> Result<(), AppError> {
+    match target_type {
+        ReportTargetType::User => {
+            let exists = sqlx::query!(
+                "SELECT 1 FROM users WHERE id = $1::uuid",
+                target_id
+            )
+            .fetch_optional(db_pool)
+            .await?;
+            
+            if exists.is_none() {
+                return Err(AppError::ValidationError("Target user does not exist".to_string()));
+            }
+        }
+        ReportTargetType::Message => {
+            // Validate message exists (would need message service or database check)
+            // For now, assume validation happens elsewhere
+        }
+        ReportTargetType::Group => {
+            let exists = sqlx::query!(
+                "SELECT 1 FROM conversations WHERE id = $1::uuid AND conversation_type = 'group'",
+                target_id
+            )
+            .fetch_optional(db_pool)
+            .await?;
+            
+            if exists.is_none() {
+                return Err(AppError::ValidationError("Target group does not exist".to_string()));
+            }
+        }
+    }
+    
+    Ok(())
+}
+
+async fn verify_moderator_role(db_pool: &PgPool, user_id: &Uuid) -> Result<(), AppError> {
+    // Check if user is admin or moderator
+    let is_moderator = sqlx::query!(
+        r#"
+        SELECT 1 FROM users 
+        WHERE id = $1 AND (is_admin = true OR is_moderator = true)
+        "#,
+        user_id
+    )
+    .fetch_optional(db_pool)
+    .await?;
+    
+    if is_moderator.is_none() {
+        return Err(AppError::Forbidden("Insufficient permissions".to_string()));
+    }
+    
+    Ok(())
+}
+
+async fn check_automated_actions(
+    state: &AppState,
+    report: &Report,
+) -> Result<(), AppError> {
+    // Check for spam patterns
+    if report.reason == ReportReason::Spam {
+        // Count user's recent reports
+        let spam_count = sqlx::query!(
+            r#"
+            SELECT COUNT(*) as count FROM reports 
+            WHERE target_id = $1 
+            AND target_type = 'user'
+            AND reason = 'Spam'
+            AND created_at > NOW() - INTERVAL '1 hour'
+            "#,
+            report.target_id
+        )
+        .fetch_one(&state.db_pool)
+        .await?;
+        
+        // Auto-ban if too many spam reports
+        if spam_count.count.unwrap_or(0) >= 5 {
+            // Apply temporary ban
+            sqlx::query!(
+                r#"
+                INSERT INTO user_restrictions 
+                (user_id, restriction_type, reason, expires_at, created_by)
+                VALUES ($1, 'ban', 'Auto-banned for spam', NOW() + INTERVAL '24 hours', 'system')
+                "#,
+                report.target_id
+            )
+            .execute(&state.db_pool)
+            .await?;
+            
+            // Update report with auto-action
+            sqlx::query!(
+                r#"
+                UPDATE reports 
+                SET status = 'resolved', 
+                    resolved_at = NOW(),
+                    resolved_by = '00000000-0000-0000-0000-000000000000',
+                    action_taken = 'Auto-banned for 24 hours'
+                WHERE id = $1
+                "#,
+                report.id
+            )
+            .execute(&state.db_pool)
+            .await?;
+            
+            info!("Auto-banned user {} for spam", report.target_id);
+        }
+    }
+    
+    Ok(())
+}
+
+async fn publish_moderation_event(
+    producer: &rdkafka::producer::FutureProducer,
+    event_type: &str,
+    report_id: &Uuid,
+    user_id: &Uuid,
+) -> Result<(), AppError> {
+    let event = ModerationEvent {
+        event_type: event_type.to_string(),
+        report_id: *report_id,
+        user_id: *user_id,
+        timestamp: Utc::now().timestamp(),
+    };
+    
+    let payload = serde_json::to_vec(&event)
+        .map_err(|e| AppError::SerializationError(e.to_string()))?;
+    
+    let record = rdkafka::producer::FutureRecord::to("moderation-events")
+        .key(&report_id.to_string())
+        .payload(&payload);
+    
+    producer.send(record, Duration::from_secs(5)).await
+        .map_err(|e| AppError::ExternalServiceError(e.to_string()))?;
+    
+    Ok(())
+}
+
+fn extract_user_id_from_headers(headers: &HeaderMap) -> Result<Uuid, AppError> {
+    let auth_header = headers
+        .get("Authorization")
+        .and_then(|h| h.to_str().ok())
+        .and_then(|s| s.strip_prefix("Bearer "))
+        .ok_or(AppError::Unauthorized("Missing token".to_string()))?;
+    
+    // Decode JWT and extract user ID
+    // Simplified - in production, use proper JWT validation
+    Uuid::parse_str(auth_header)
+        .map_err(|_| AppError::Unauthorized("Invalid token".to_string()))
+}
+
+#[derive(Debug, Serialize)]
+struct UserModerationStatus {
+    user_id: Uuid,
+    active_restrictions: Vec<ActiveRestriction>,
+    total_reports: u32,
+    is_restricted: bool,
+}
+
+#[derive(Debug, Serialize)]
+struct ActiveRestriction {
+    restriction_type: String,
+    expires_at: Option<DateTime<Utc>>,
+    reason: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct ModerationStats {
+    pending_reports: u32,
+    investigating_reports: u32,
+    resolved_reports: u32,
+    last_24h_reports: u32,
+    avg_resolution_time_seconds: Option<f64>,
+}
+
+#[derive(Debug, Serialize)]
+struct ModerationEvent {
+    event_type: String,
+    report_id: Uuid,
+    user_id: Uuid,
+    timestamp: i64,
+}
+
+#[derive(Debug, Serialize)]
+struct ModerationActionEvent {
+    moderator_id: Uuid,
+    action: String,
+    reason: String,
+    timestamp: i64,
+}
