@@ -1,0 +1,29 @@
+[package]
+name = "shared"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+uuid = { version = "1.0", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+validator = { version = "2.0", features = ["derive"] }
+thiserror = "1.0"
+tracing = "0.1"
+base64 = "0.21"
+hex = "0.4"
+aes-gcm = "0.10"
+chacha20poly1305 = "0.10"
+rand = "0.8"
+ed25519-dalek = { version = "2.0", features = ["serde"] }
+x25519-dalek = "2.0"
+argon2 = "0.5"
+jsonwebtoken = "9.0"
+rustls = "0.21"
+rcgen = "0.11"
+bincode = "2.0"
+bytes = "1.0"
+futures = "0.3"
+async-trait = "0.1"
