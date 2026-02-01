@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+package presence;
+
+service Presence {
+    rpc UpdatePresence(UpdatePresenceRequest) returns (UpdatePresenceResponse);
+    rpc GetPresence(GetPresenceRequest) returns (GetPresenceResponse);
+    rpc SubscribePresence(SubscribePresenceRequest) returns (stream PresenceUpdate);
+    rpc GetOnlineFriends(GetOnlineFriendsRequest) returns (GetOnlineFriendsResponse);
+    rpc BulkPresenceUpdate(BulkPresenceUpdateRequest) returns (BulkPresenceUpdateResponse);
+}
+
+message UpdatePresenceRequest {
+    string user_id = 1;
+    string status = 2;
+    string device_id = 3;
+    optional string ip_address = 4;
+    optional string user_agent = 5;
+    optional string custom_status = 6;
+}
+
+message UpdatePresenceResponse {
+    bool success = 1;
+}
+
+message GetPresenceRequest {
+    repeated string user_ids = 1;
+}
+
+message GetPresenceResponse {
+    map<string, UserPresence> presence = 1;
+}
+
+message UserPresence {
+    string status = 1;
+    int64 last_active = 2;
+    optional string custom_status = 3;
+    uint32 devices = 4;
+}
+
+message PresenceUpdate {
+    string user_id = 1;
+    string status = 2;
+    string device_id = 3;
+    int64 last_active = 4;
+    optional string custom_status = 5;
+}
+
+message SubscribePresenceRequest {
+    string user_id = 1;
+}
+
+message GetOnlineFriendsRequest {
+    string user_id = 1;
+}
+
+message GetOnlineFriendsResponse {
+    repeated FriendPresence online_friends = 1;
+}
+
+message FriendPresence {
+    string user_id = 1;
+    string status = 2;
+    int64 last_active = 3;
+    optional string custom_status = 4;
+}
+
+message BulkPresenceUpdateRequest {
+    repeated PresenceUpdateRequest updates = 1;
+}
+
+message BulkPresenceUpdateResponse {
+    uint32 successes = 1;
+    uint32 failures = 2;
+}
+
+message PresenceUpdateRequest {
+    string user_id = 1;
+    string status = 2;
+    string device_id = 3;
+    optional string ip_address = 4;
+    optional string user_agent = 5;
+    optional string custom_status = 6;
+}
