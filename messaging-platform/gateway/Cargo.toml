@@ -1,0 +1,20 @@
+[package]
+name = "gateway"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1.0", features = ["full"] }
+axum = { version = "0.6", features = ["ws", "headers"] }
+tokio-tungstenite = "0.20"
+futures = "0.3"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+uuid = { version = "1.0", features = ["v4", "serde"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+redis = { version = "0.23", features = ["tokio-comp"] }
+rdkafka = { version = "0.35", features = ["cmake-build"] }
+jsonwebtoken = "9.0"
+dashmap = "5.0"
+shared = { path = "../shared" }
