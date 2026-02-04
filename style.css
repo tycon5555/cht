@@ -1,235 +1,105 @@
-/* RESET */
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
 }
 
 body {
-    background: #000;
-    color: #fff;
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
-    overflow-x: hidden;
+  background: #fff;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* ===== NAVBAR ===== */
-.nav {
-    width: 100%;
-    padding: 20px 40px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    backdrop-filter: blur(20px);
-    background: rgba(255,255,255,0.05);
-    position: sticky;
-    top: 0;
-    z-index: 10;
+.container {
+  width: 100%;
+  max-width: 420px;
 }
 
-.logo {
-    font-size: 28px;
-    font-weight: 700;
-    color: white;
-    text-decoration: none;
-    letter-spacing: -0.5px;
+.login-card {
+  background: #ffffffcc;
+  padding: 50px 40px;
+  border-radius: 25px;
+  box-shadow: 0 20px 70px rgba(0,0,0,0.08);
+  backdrop-filter: blur(10px);
+  animation: fadeIn 0.8s ease;
 }
 
-.nav-links a {
-    margin: 0 18px;
-    text-decoration: none;
-    color: #ccc;
-    font-size: 16px;
+.title {
+  font-size: 32px;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 8px;
+  letter-spacing: -1px;
 }
 
-.nav-links a:hover {
-    color: #fff;
+.subtitle {
+  text-align: center;
+  color: #555;
+  margin-bottom: 32px;
+  font-size: 14px;
 }
 
-button {
-    background: #fff;
-    padding: 10px 20px;
-    border-radius: 12px;
-    border: none;
-    cursor: pointer;
-    color: #000;
-    font-weight: 600;
-    transition: 0.25s ease;
+.google-btn {
+  width: 100%;
+  background: #000;
+  color: white;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  transition: 0.2s ease;
 }
 
-button:hover {
-    opacity: 0.75;
+.google-btn:hover {
+  background: #111;
 }
 
-.hidden { display: none; }
-
-/* ===== BACKGROUND BALLS ===== */
-.bg-balls {
-    position: fixed;
-    inset: 0;
-    overflow: hidden;
-    z-index: -2;
+.g-icon {
+  width: 20px;
 }
 
-.ball {
-    position: absolute;
-    width: 420px;
-    height: 420px;
-    top: -80px;
-    right: -120px;
-    background: rgba(255,255,255,0.15);
-    filter: blur(120px);
-    border-radius: 50%;
+.divider {
+  text-align: center;
+  margin: 30px 0;
+  color: #999;
+  font-size: 13px;
 }
 
-.ball:nth-child(2) {
-    width: 350px;
-    height: 350px;
-    bottom: -60px;
-    left: -100px;
-    opacity: 0.1;
+.input {
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid #ddd;
+  margin-bottom: 15px;
+  font-size: 15px;
+  background: #fafafa;
 }
 
-/* ===== HERO SECTION ===== */
-.hero {
-    text-align: center;
-    padding: 180px 20px;
+.continue-btn {
+  width: 100%;
+  background: #111;
+  color: white;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: 0.2s ease;
 }
 
-.hero h1 {
-    font-size: 70px;
-    font-weight: 700;
-    letter-spacing: -1px;
+.continue-btn:hover {
+  background: #000;
 }
 
-.hero p {
-    margin-top: 15px;
-    font-size: 20px;
-    color: #ccc;
-}
-
-.cta {
-    margin-top: 35px;
-    padding: 14px 32px;
-    font-size: 18px;
-    border-radius: 14px;
-    background: #fff;
-    color: #000;
-    font-weight: 600;
-    cursor: pointer;
-    transition: 0.3s;
-}
-
-.cta:hover {
-    transform: scale(1.05);
-}
-
-/* ===== PAGE WRAPPER ===== */
-.page {
-    padding: 40px;
-    max-width: 1100px;
-    margin: auto;
-}
-
-.page h2 {
-    font-size: 36px;
-    margin-bottom: 10px;
-}
-
-.sub {
-    color: #aaa;
-    margin-bottom: 20px;
-}
-
-/* ===== FOOTER ===== */
-.footer {
-    margin-top: 120px;
-    text-align: center;
-    color: #777;
-    font-size: 14px;
-    padding-bottom: 40px;
-}
-
-/* ============================================================
-   PREMIUM CHAT STYLING
-   ============================================================ */
-
-/* CHAT BOX */
-.chat-box {
-    background: rgba(255,255,255,0.05);
-    height: 500px;
-    border-radius: 18px;
-    padding: 20px;
-    overflow-y: auto;
-    margin-bottom: 20px;
-}
-
-.msg {
-    margin-bottom: 14px;
-    animation: fadeIn 0.3s ease;
-}
-
-.bubble {
-    background: #111;
-    padding: 14px 18px;
-    border-radius: 14px;
-    width: fit-content;
-    max-width: 70%;
-    border: 1px solid rgba(255,255,255,0.08);
-}
-
-.bubble strong {
-    font-size: 14px;
-    color: #fff;
-    font-weight: 600;
-}
-
-.timestamp {
-    font-size: 10px;
-    color: #777;
-    float: right;
-    margin-top: 5px;
-}
-
-/* TYPING */
-.typing {
-    font-size: 14px;
-    color: #888;
-    margin-bottom: 10px;
-    display: none;
-}
-
-.typing.active {
-    display: block;
-}
-
-/* INPUT AREA */
-.chat-input-area {
-    display: flex;
-    gap: 10px;
-}
-
-.chat-input-area input {
-    flex: 1;
-    padding: 14px;
-    border-radius: 12px;
-    border: none;
-    outline: none;
-    background: #fff;
-    color: #000;
-    font-size: 16px;
-}
-
-.chat-input-area button {
-    padding: 14px 24px;
-    border-radius: 12px;
-    background: #fff;
-    color: #000;
-    font-weight: 600;
-    font-size: 16px;
-}
-
-/* ANIMATION */
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
