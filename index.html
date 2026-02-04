@@ -1,59 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SemiCrypto</title>
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SemiCrypto Login</title>
   <link rel="stylesheet" href="style.css">
-
-  <!-- Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-  <script src="supabase.js" defer></script>
-  <script src="app.js" defer></script>
 </head>
-
 <body>
 
-<!-- ================= NAVIGATION ================= -->
-<nav class="nav">
-    <a href="index.html" class="logo">SemiCrypto</a>
+<div class="container">
+  
+  <div class="login-card">
+    <h1 class="title">SemiCrypto</h1>
+    <p class="subtitle">Log in to continue</p>
 
-    <div class="nav-links">
-        <a href="learn.html">Learn</a>
-        <a href="blog.html">Blog</a>
-        <a href="merch.html">Store</a>
-        <a href="contact.html">Contact</a>
-    </div>
+    <button class="google-btn" onclick="googleLogin()">
+      <img src="https://www.svgrepo.com/show/355037/google.svg" class="g-icon">
+      Continue with Google
+    </button>
 
-    <button id="loginBtn">Login</button>
-    <button id="logoutBtn" class="hidden">Logout</button>
-</nav>
+    <div class="divider">or</div>
 
+    <input type="email" placeholder="Email address" class="input">
+    <button class="continue-btn">Continue</button>
 
-<!-- ================= BACKGROUND BALLS (WHITE + BLUR) ================= -->
-<div class="bg-balls">
-    <div class="ball"></div>
-    <div class="ball"></div>
+  </div>
+
 </div>
 
-
-<!-- ================= HERO ================= -->
-<section class="hero">
-    <h1>SemiCrypto</h1>
-    <p>A premium, minimal, future-ready crypto experience.</p>
-
-    <a href="learn.html">
-        <button class="cta">Start Learning →</button>
-    </a>
-</section>
-
-
-<!-- ================= FOOTER ================= -->
-<footer class="footer">
-    <p>© 2025 SemiCrypto — Designed with simplicity.</p>
-</footer>
+<script>
+  function googleLogin() {
+    window.location.href = "/api/auth/signin"; 
+  }
+</script>
 
 </body>
 </html>
-
