@@ -224,21 +224,29 @@ export default function Home() {
       {/* Main Chat Area */}
       {activeChat ? (
         <div className="flex-1 flex flex-col">
-          <ChatWindow
-            chat={activeChat}
-            currentUser={store.currentUser}
-            onSendMessage={handleSendMessage}
-            onCall={handleCall}
-            onClose={() => setShowCloseChat(true)}
-            onDelete={() => setShowDeleteHistory(true)}
-            onDisappearing={() => setShowDisappearing(true)}
-            onBlock={() => setShowBlockUser(true)}
-            onReport={() => setShowReportUser(true)}
-            onArchive={() => store.archiveChat(activeChat.id)}
-            isBlocked={store.currentUser ? store.isUserBlocked(
-              activeChat?.participants?.find(p => store.currentUser && p.id !== store.currentUser.id)?.id || ''
-            ) : false}
-          />
+          {(() => {
+            const otherUserId = 
+              store.currentUser && activeChat?.participants
+                ? activeChat.participants.find(p => p.id !== store.currentUser?.id)?.id
+                : undefined
+            
+            return (
+              <ChatWindow
+                chat={activeChat}
+                currentUser={store.currentUser}
+                onSendMessage={handleSendMessage}
+                onCall={handleCall}
+                onClose={() => setShowCloseChat(true)}
+                onDelete={() => setShowDeleteHistory(true)}
+                onDisappearing={() => setShowDisappearing(true)}
+                onBlock={() => setShowBlockUser(true)}
+                onReport={() => setShowReportUser(true)}
+                onArchive={() => store.archiveChat(activeChat.id)}
+                isBlocked={otherUserId ? store.isUserBlocked(otherUserId) : false}
+              />
+            )
+          })()}
+        </div>
         </div>
       ) : (
         <div className="flex-1 flex items-center justify-center bg-background">
