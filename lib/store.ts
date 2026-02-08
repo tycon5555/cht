@@ -1,7 +1,7 @@
 'use client'
 
 import { create } from 'zustand'
-import type { User, Chat, Message, FriendRequest, CallState, Sticker, BlockedUser, Report, UserPrivacySettings } from './types'
+import type { User, Chat, Message, FriendRequest, CallState, Sticker, BlockedUser, Report, UserPrivacySettings, Device, UserStatus, AnalyticsData, Poll, MessageReaction } from './types'
 
 interface AppStore {
   // User state
@@ -72,6 +72,40 @@ interface AppStore {
   setDisappearingMessages: (chatId: string, duration: string) => void
   deleteMessageHistory: (chatId: string, type: 'all' | 'older_than', beforeDate?: Date) => void
   deleteMessage: (chatId: string, messageId: string) => void
+  
+  // Authentication & Verification
+  verifyUser: (method: 'phone' | 'email') => void
+  
+  // User Status
+  setUserStatus: (status: UserStatus) => void
+  clearUserStatus: () => void
+  
+  // Multi-Device
+  devices: Device[]
+  addDevice: (device: Device) => void
+  logoutDevice: (deviceId: string) => void
+  
+  // Admin & Analytics
+  analytics: AnalyticsData
+  isAdmin: boolean
+  setAdmin: (admin: boolean) => void
+  suspendUser: (userId: string) => void
+  banUser: (userId: string) => void
+  
+  // Polls
+  createPoll: (chatId: string, poll: Poll) => void
+  votePoll: (chatId: string, pollId: string, optionId: string) => void
+  
+  // Message Reactions
+  addMessageReaction: (chatId: string, messageId: string, emoji: string) => void
+  removeMessageReaction: (chatId: string, messageId: string, emoji: string) => void
+  
+  // Message Search
+  searchMessages: (query: string, filter?: string) => Message[]
+  
+  // Starred Messages
+  starMessage: (chatId: string, messageId: string) => void
+  unstarMessage: (chatId: string, messageId: string) => void
 }
 
 export const useAppStore = create<AppStore>((set, get) => ({
@@ -315,5 +349,164 @@ export const useAppStore = create<AppStore>((set, get) => ({
         lastMessage: filteredMessages[filteredMessages.length - 1]
       }
     })
+  })),
+
+  // Auth
+  verifyUser: (method) => set((state) => ({
+    currentUser: state.currentUser ? {
+      ...state.currentUser,
+      verification: {
+        phoneVerified: method === 'phone',
+        emailVerified: method === 'email',
+        verifiedAt: new Date(),
+        primaryMethod: method
+      }
+    } : null
+  })),
+
+  // User Status
+  setUserStatus: (status) => set((state) => ({
+    currentUser: state.currentUser ? { ...state.currentUser, status } : null
+  })),
+  clearUserStatus: () => set((state) => ({
+    currentUser: state.currentUser ? { ...state.currentUser, status: undefined } : null
+  })),
+
+  // Devices
+  devices: [],
+  addDevice: (device) => set((state) => ({
+    devices: [...state.devices, device]
+  })),
+  logoutDevice: (deviceId) => set((state) => ({
+    devices: state.devices.filter(d => d.id !== deviceId)
+  })),
+
+  // Admin
+  analytics: {
+    totalUsers: 1250,
+    activeUsersToday: 340,
+    totalMessagesSent: 125400,
+    activeGroups: 89,
+    reportsSubmitted: 23,
+    suspendedUsers: 5,
+    bannedUsers: 3
+  },
+  isAdmin: false,
+  setAdmin: (admin) => set({ isAdmin: admin }),
+  suspendUser: (userId) => set((state) => ({
+    analytics: { ...state.analytics, suspendedUsers: state.analytics.suspendedUsers + 1 }
+  })),
+  banUser: (userId) => set((state) => ({
+    analytics: { ...state.analytics, bannedUsers: state.analytics.bannedUsers + 1 }
+  })),
+
+  // Polls
+  createPoll: (chatId, poll) => set((state) => ({
+    chats: state.chats.map(chat =>
+      chat.id === chatId ? { ...chat, polls: [...(chat.polls || []), poll] } : chat
+    )
+  })),
+  votePoll: (chatId, pollId, optionId) => set((state) => ({
+    chats: state.chats.map(chat => {
+      if (chat.id !== chatId || !chat.polls) return chat
+      
+      return {
+        ...chat,
+        polls: chat.polls.map(poll =>
+          poll.id === pollId
+            ? {
+                ...poll,
+                options: poll.options.map(opt =>
+                  opt.id === optionId ? { ...opt, votes: opt.votes + 1 } : opt
+                ),
+                voters: {
+                  ...poll.voters,
+                  [state.currentUser?.id || '']: [...(poll.voters[state.currentUser?.id || ''] || []), optionId]
+                }
+              }
+            : poll
+        )
+      }
+    })
+  })),
+
+  // Reactions
+  addMessageReaction: (chatId, messageId, emoji) => set((state) => ({
+    chats: state.chats.map(chat => {
+      if (chat.id !== chatId) return chat
+      
+      return {
+        ...chat,
+        messages: chat.messages.map(msg => {
+          if (msg.id !== messageId) return msg
+          
+          const reactions = [...(msg.reactions || [])]
+          const existing = reactions.find(r => r.emoji === emoji)
+          if (existing) {
+            existing.users.push(state.currentUser?.id || '')
+            existing.count += 1
+          } else {
+            reactions.push({ emoji, users: [state.currentUser?.id || ''], count: 1 })
+          }
+          
+          return { ...msg, reactions }
+        })
+      }
+    })
+  })),
+  removeMessageReaction: (chatId, messageId, emoji) => set((state) => ({
+    chats: state.chats.map(chat => {
+      if (chat.id !== chatId) return chat
+      
+      return {
+        ...chat,
+        messages: chat.messages.map(msg => {
+          if (msg.id !== messageId) return msg
+          
+          const reactions = (msg.reactions || []).filter(r => r.emoji !== emoji)
+          return { ...msg, reactions }
+        })
+      }
+    })
+  })),
+
+  // Search
+  searchMessages: (query, filter) => {
+    const state = get()
+    let results: Message[] = []
+    
+    state.chats.forEach(chat => {
+      results = [...results, ...chat.messages.filter(m =>
+        m.content.toLowerCase().includes(query.toLowerCase())
+      )]
+    })
+    
+    return results
+  },
+
+  // Starred
+  starMessage: (chatId, messageId) => set((state) => ({
+    chats: state.chats.map(chat =>
+      chat.id === chatId
+        ? {
+            ...chat,
+            messages: chat.messages.map(msg =>
+              msg.id === messageId ? { ...msg, starred: true } : msg
+            )
+          }
+        : chat
+    )
+  })),
+  unstarMessage: (chatId, messageId) => set((state) => ({
+    chats: state.chats.map(chat =>
+      chat.id === chatId
+        ? {
+            ...chat,
+            messages: chat.messages.map(msg =>
+              msg.id === messageId ? { ...msg, starred: false } : msg
+            )
+          }
+        : chat
+    )
   }))
 }))

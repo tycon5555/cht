@@ -236,7 +236,7 @@ export default function Home() {
             onReport={() => setShowReportUser(true)}
             onArchive={() => store.archiveChat(activeChat.id)}
             isBlocked={store.isUserBlocked(
-              activeChat.participants.find(p => p.id !== store.currentUser!.id)?.id || ''
+              activeChat?.participants?.find(p => p.id !== store.currentUser!.id)?.id || ''
             )}
           />
         </div>

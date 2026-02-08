@@ -13,6 +13,11 @@ export interface User {
   about?: string
   online: boolean
   lastSeen?: string
+  verification?: UserVerification
+  status?: UserStatus
+  role?: 'admin' | 'user'
+  suspended?: boolean
+  banned?: boolean
 }
 
 export interface Message {
@@ -20,15 +25,18 @@ export interface Message {
   chatId: string
   senderId: string
   content: string
-  type: 'text' | 'image' | 'voice' | 'sticker'
+  type: 'text' | 'image' | 'voice' | 'sticker' | 'poll'
   timestamp: Date
   status: MessageStatus
   visibility: MessageVisibility
   imageUrl?: string
   voiceDuration?: number
   stickerUrl?: string
-  reactions?: Record<string, number>
+  reactions?: MessageReaction[]
   isEncrypted: boolean
+  starred?: boolean
+  pollId?: string
+  effectType?: 'confetti' | 'sparkle' | 'pulse' | 'none'
 }
 
 export interface Chat {
@@ -48,6 +56,13 @@ export interface Chat {
   closed?: boolean
   disappearingMessageDuration?: DisappearingMessageDuration
   customDisappearingTime?: number
+  readReceiptsSetting?: 'everyone' | 'friends_only' | 'no_one'
+  polls?: Poll[]
+  pinnedMessages?: string[]
+  adminIds?: string[]
+  restrictedUsers?: string[]
+  slowModeEnabled?: boolean
+  mediaRestricted?: boolean
 }
 
 export interface FriendRequest {
@@ -94,4 +109,64 @@ export interface UserPrivacySettings {
   closedConversations: string[]
   blockedUsers: BlockedUser[]
   reports: Report[]
+}
+
+export type VerificationMethod = 'phone' | 'email' | 'none'
+
+export interface UserVerification {
+  phoneVerified: boolean
+  emailVerified: boolean
+  verifiedAt: Date | null
+  primaryMethod: VerificationMethod
+}
+
+export interface UserStatus {
+  message: string
+  emoji: string
+  expiresAt: Date | null
+  createdAt: Date
+}
+
+export interface Device {
+  id: string
+  name: string
+  platform: 'windows' | 'macos' | 'linux' | 'ios' | 'android'
+  browser?: string
+  lastActive: Date
+  isCurrent: boolean
+}
+
+export interface AnalyticsData {
+  totalUsers: number
+  activeUsersToday: number
+  totalMessagesSent: number
+  activeGroups: number
+  reportsSubmitted: number
+  suspendedUsers: number
+  bannedUsers: number
+}
+
+export interface Poll {
+  id: string
+  chatId: string
+  question: string
+  options: { id: string; text: string; votes: number }[]
+  anonymous: boolean
+  multipleVotes: boolean
+  expiresAt: Date | null
+  voters: Record<string, string[]>
+}
+
+export interface MessageReaction {
+  emoji: string
+  users: string[]
+  count: number
+}
+
+export interface Notification {
+  id: string
+  username: string
+  message: string
+  type: 'message' | 'image' | 'voice'
+  timestamp: Date
 }
