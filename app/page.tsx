@@ -132,8 +132,15 @@ export default function Home() {
     }, 2000)
   }
 
+  // Helper function to safely get the other user in a DM
+  const getOtherUser = () => {
+    if (!store.currentUser || !activeChat?.participants) return null
+    const otherUser = activeChat.participants.find(p => p && p.id !== store.currentUser.id)
+    return otherUser || null
+  }
+
   const handleCall = (type: 'voice' | 'video') => {
-    const otherUser = activeChat?.participants.find(p => p.id !== store.currentUser!.id)
+    const otherUser = getOtherUser()
     if (otherUser) {
       setIncomingCall({ caller: otherUser, type })
       setTimeout(() => {
@@ -338,14 +345,14 @@ export default function Home() {
         isOpen={showBlockUser}
         onClose={() => setShowBlockUser(false)}
         onConfirm={handleBlockUser}
-        user={activeChat?.participants.find(p => p.id !== store.currentUser!.id) || null}
+        user={getOtherUser()}
       />
 
       <ReportUserModal
         isOpen={showReportUser}
         onClose={() => setShowReportUser(false)}
         onConfirm={handleReportUser}
-        user={activeChat?.participants.find(p => p.id !== store.currentUser!.id) || null}
+        user={getOtherUser()}
       />
 
       <InvisibleModeModal
