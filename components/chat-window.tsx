@@ -43,7 +43,7 @@ export function ChatWindow({
   }, [chat.messages])
 
   const isGroupChat = chat.type === 'group'
-  const otherUser = chat.participants.find((p) => p.id !== currentUser.id)
+  const otherUser = currentUser ? chat.participants.find((p) => p && p.id !== currentUser.id) : undefined
 
   return (
     <div className="flex flex-col h-full bg-background">
