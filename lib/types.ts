@@ -1,6 +1,8 @@
 export type MessageStatus = 'sent' | 'delivered' | 'seen'
 export type MessageVisibility = 'forever' | 'view_once' | 'view_twice'
 export type ChatType = 'dm' | 'group'
+export type DisappearingMessageDuration = 'off' | '5s' | '30s' | '1m' | '1h' | '24h' | 'custom'
+export type ReportReason = 'spam' | 'harassment' | 'inappropriate' | 'impersonation' | 'other'
 
 export interface User {
   id: string
@@ -43,6 +45,9 @@ export interface Chat {
   messages: Message[]
   typingUsers: string[]
   createdAt: Date
+  closed?: boolean
+  disappearingMessageDuration?: DisappearingMessageDuration
+  customDisappearingTime?: number
 }
 
 export interface FriendRequest {
@@ -68,4 +73,25 @@ export interface Sticker {
   category: string
   custom: boolean
   userId?: string
+}
+
+export interface BlockedUser {
+  userId: string
+  blockedAt: Date
+}
+
+export interface Report {
+  id: string
+  reportedUserId: string
+  reason: ReportReason
+  description?: string
+  reportedAt: Date
+  blockAfterReport?: boolean
+}
+
+export interface UserPrivacySettings {
+  invisibleMode: boolean
+  closedConversations: string[]
+  blockedUsers: BlockedUser[]
+  reports: Report[]
 }

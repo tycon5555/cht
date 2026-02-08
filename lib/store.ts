@@ -1,7 +1,7 @@
 'use client'
 
 import { create } from 'zustand'
-import type { User, Chat, Message, FriendRequest, CallState, Sticker } from './types'
+import type { User, Chat, Message, FriendRequest, CallState, Sticker, BlockedUser, Report, UserPrivacySettings } from './types'
 
 interface AppStore {
   // User state
@@ -59,6 +59,19 @@ interface AppStore {
   // Unread counter
   totalUnread: number
   updateUnreadCount: () => void
+  
+  // Privacy & Safety
+  privacySettings: UserPrivacySettings
+  setInvisibleMode: (enabled: boolean) => void
+  blockUser: (userId: string) => void
+  unblockUser: (userId: string) => void
+  isUserBlocked: (userId: string) => boolean
+  closeChat: (chatId: string) => void
+  reopenChat: (chatId: string) => void
+  reportUser: (userId: string, reason: string, description?: string, blockAfterReport?: boolean) => void
+  setDisappearingMessages: (chatId: string, duration: string) => void
+  deleteMessageHistory: (chatId: string, type: 'all' | 'older_than', beforeDate?: Date) => void
+  deleteMessage: (chatId: string, messageId: string) => void
 }
 
 export const useAppStore = create<AppStore>((set, get) => ({
@@ -205,5 +218,102 @@ export const useAppStore = create<AppStore>((set, get) => ({
   totalUnread: 0,
   updateUnreadCount: () => set((state) => ({
     totalUnread: state.chats.reduce((sum, chat) => sum + chat.unreadCount, 0)
+  })),
+  
+  privacySettings: {
+    invisibleMode: false,
+    closedConversations: [],
+    blockedUsers: [],
+    reports: []
+  },
+  setInvisibleMode: (enabled) => set((state) => ({
+    privacySettings: { ...state.privacySettings, invisibleMode: enabled }
+  })),
+  blockUser: (userId) => set((state) => ({
+    privacySettings: {
+      ...state.privacySettings,
+      blockedUsers: [...state.privacySettings.blockedUsers, { userId, blockedAt: new Date() }]
+    }
+  })),
+  unblockUser: (userId) => set((state) => ({
+    privacySettings: {
+      ...state.privacySettings,
+      blockedUsers: state.privacySettings.blockedUsers.filter(b => b.userId !== userId)
+    }
+  })),
+  isUserBlocked: (userId) => {
+    const state = get()
+    return state.privacySettings.blockedUsers.some(b => b.userId === userId)
+  },
+  closeChat: (chatId) => set((state) => ({
+    chats: state.chats.map(chat =>
+      chat.id === chatId ? { ...chat, closed: true } : chat
+    ),
+    privacySettings: {
+      ...state.privacySettings,
+      closedConversations: [...state.privacySettings.closedConversations, chatId]
+    }
+  })),
+  reopenChat: (chatId) => set((state) => ({
+    chats: state.chats.map(chat =>
+      chat.id === chatId ? { ...chat, closed: false } : chat
+    ),
+    privacySettings: {
+      ...state.privacySettings,
+      closedConversations: state.privacySettings.closedConversations.filter(id => id !== chatId)
+    }
+  })),
+  reportUser: (userId, reason, description, blockAfterReport) => set((state) => ({
+    privacySettings: {
+      ...state.privacySettings,
+      reports: [...state.privacySettings.reports, {
+        id: `report_${Date.now()}`,
+        reportedUserId: userId,
+        reason: reason as any,
+        description,
+        reportedAt: new Date(),
+        blockAfterReport
+      }],
+      blockedUsers: blockAfterReport 
+        ? [...state.privacySettings.blockedUsers, { userId, blockedAt: new Date() }]
+        : state.privacySettings.blockedUsers
+    }
+  })),
+  setDisappearingMessages: (chatId, duration) => set((state) => ({
+    chats: state.chats.map(chat =>
+      chat.id === chatId 
+        ? { ...chat, disappearingMessageDuration: duration as any }
+        : chat
+    )
+  })),
+  deleteMessageHistory: (chatId, type, beforeDate) => set((state) => ({
+    chats: state.chats.map(chat => {
+      if (chat.id !== chatId) return chat
+      
+      let filteredMessages = [...chat.messages]
+      if (type === 'older_than' && beforeDate) {
+        filteredMessages = filteredMessages.filter(m => m.timestamp > beforeDate)
+      } else if (type === 'all') {
+        filteredMessages = []
+      }
+      
+      return {
+        ...chat,
+        messages: filteredMessages,
+        lastMessage: filteredMessages[filteredMessages.length - 1]
+      }
+    })
+  })),
+  deleteMessage: (chatId, messageId) => set((state) => ({
+    chats: state.chats.map(chat => {
+      if (chat.id !== chatId) return chat
+      
+      const filteredMessages = chat.messages.filter(m => m.id !== messageId)
+      return {
+        ...chat,
+        messages: filteredMessages,
+        lastMessage: filteredMessages[filteredMessages.length - 1]
+      }
+    })
   }))
 }))

@@ -1,10 +1,11 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { Phone, Video, MoreVertical } from 'lucide-react'
+import { Phone, Video } from 'lucide-react'
 import { Avatar } from './avatar'
 import { MessageBubble } from './message-bubble'
 import { MessageInput } from './message-input'
+import { DmActionsMenu } from './dm-actions-menu'
 import { motion } from 'framer-motion'
 import type { Chat, User } from '@/lib/types'
 
@@ -13,6 +14,13 @@ interface ChatWindowProps {
   currentUser: User
   onSendMessage: (content: string) => void
   onCall: (type: 'voice' | 'video') => void
+  onClose?: () => void
+  onDelete?: () => void
+  onDisappearing?: () => void
+  onBlock?: () => void
+  onReport?: () => void
+  onArchive?: () => void
+  isBlocked?: boolean
 }
 
 export function ChatWindow({
@@ -20,6 +28,13 @@ export function ChatWindow({
   currentUser,
   onSendMessage,
   onCall,
+  onClose,
+  onDelete,
+  onDisappearing,
+  onBlock,
+  onReport,
+  onArchive,
+  isBlocked = false,
 }: ChatWindowProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -53,7 +68,8 @@ export function ChatWindow({
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => onCall('voice')}
-            className="p-2 hover:bg-muted rounded-full"
+            disabled={isBlocked || chat.closed}
+            className="p-2 hover:bg-muted rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Phone className="w-5 h-5 text-primary" />
           </motion.button>
@@ -61,19 +77,41 @@ export function ChatWindow({
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => onCall('video')}
-            className="p-2 hover:bg-muted rounded-full"
+            disabled={isBlocked || chat.closed}
+            className="p-2 hover:bg-muted rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Video className="w-5 h-5 text-primary" />
           </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
-            className="p-2 hover:bg-muted rounded-full"
-          >
-            <MoreVertical className="w-5 h-5 text-muted-foreground" />
-          </motion.button>
+          {!isGroupChat && (
+            <DmActionsMenu
+              chat={chat}
+              isClosed={chat.closed}
+              onClose={onClose}
+              onDelete={onDelete}
+              onDisappearing={onDisappearing}
+              onBlock={onBlock}
+              onReport={onReport}
+              onArchive={onArchive}
+            />
+          )}
         </div>
       </div>
+
+      {/* Closed Chat Notice */}
+      {chat.closed && (
+        <div className="bg-destructive/10 border-b border-destructive/20 p-3 text-center">
+          <p className="text-sm text-destructive font-medium">🔒 This conversation is closed</p>
+          <p className="text-xs text-muted-foreground mt-1">You cannot send messages to this chat</p>
+        </div>
+      )}
+
+      {/* Blocked User Notice */}
+      {isBlocked && (
+        <div className="bg-destructive/10 border-b border-destructive/20 p-3 text-center">
+          <p className="text-sm text-destructive font-medium">🚫 You have blocked this user</p>
+          <p className="text-xs text-muted-foreground mt-1">Messaging and calls are unavailable</p>
+        </div>
+      )}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-1">
@@ -116,7 +154,15 @@ export function ChatWindow({
       </div>
 
       {/* Input */}
-      <MessageInput onSend={onSendMessage} />
+      {!chat.closed && !isBlocked ? (
+        <MessageInput onSend={onSendMessage} />
+      ) : (
+        <div className="border-t border-border p-4 bg-card/50">
+          <div className="w-full h-10 bg-input rounded-2xl flex items-center px-4 text-muted-foreground text-sm">
+            {chat.closed ? 'This conversation is closed' : 'You cannot message this user'}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
