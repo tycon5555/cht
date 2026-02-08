@@ -247,7 +247,6 @@ export default function Home() {
             )
           })()}
         </div>
-        </div>
       ) : (
         <div className="flex-1 flex items-center justify-center bg-background">
           <div className="text-center">
