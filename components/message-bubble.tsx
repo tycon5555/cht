@@ -26,21 +26,24 @@ export function MessageBubble({
 }: MessageBubbleProps) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className={`flex gap-2 mb-2 ${isOwn ? 'justify-end' : 'justify-start'}`}
+      transition={{ duration: 0.2 }}
+      className={`flex gap-2 mb-3 ${isOwn ? 'justify-end' : 'justify-start'} group`}
     >
       {!isOwn && showAvatar && avatar && (
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary flex-shrink-0" />
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary flex-shrink-0 flex items-center justify-center text-xs font-bold text-white" >
+          {avatar.charAt(0).toUpperCase()}
+        </div>
       )}
       <div className="flex flex-col gap-1 max-w-xs">
         <motion.div
-          className={`rounded-2xl px-4 py-2 text-sm break-words ${
+          className={`rounded-lg px-4 py-2 text-sm break-words ${
             isOwn
-              ? 'bg-primary text-primary-foreground rounded-br-none'
-              : 'bg-card text-card-foreground rounded-bl-none'
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-muted text-foreground'
           }`}
+          whileHover={{ scale: 1.02 }}
         >
           {message.type === 'text' && <p>{message.content}</p>}
           {message.type === 'image' && message.imageUrl && (

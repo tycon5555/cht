@@ -70,12 +70,12 @@ export function MessageInput({
 
   return (
     <>
-      <div className="border-t border-border p-4">
-        <div className="flex items-end gap-2 mb-2">
+      <div className="border-t border-border/50 px-4 py-3 bg-card/70">
+        <div className="flex items-end gap-2">
           <motion.button
-            whileHover={{ scale: 1.1 }}
+            whileHover={{ scale: 1.15 }}
             whileTap={{ scale: 0.95 }}
-            className="text-primary hover:text-primary/80 p-2"
+            className="text-primary hover:text-primary/80 p-2 rounded-lg hover:bg-muted/50 transition-colors"
             onClick={handleImageClick}
             title="Attach image"
           >
@@ -83,27 +83,22 @@ export function MessageInput({
           </motion.button>
 
           <motion.button
-            whileHover={{ scale: 1.1 }}
+            whileHover={{ scale: 1.15 }}
             whileTap={{ scale: 0.95 }}
-            className="text-primary hover:text-primary/80 p-2"
+            className="text-primary hover:text-primary/80 p-2 rounded-lg hover:bg-muted/50 transition-colors"
             onClick={() => setShowStickers(!showStickers)}
-            title="Stickers"
+            title="Add emoji"
           >
             <Smile className="w-5 h-5" />
           </motion.button>
 
-          <VisibilitySelector
-            selected={visibility}
-            onSelect={setVisibility}
-          />
-
-          <div className="flex-1">
+          <div className="flex-1 flex items-end gap-2">
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Type a message..."
-              className="w-full bg-input text-foreground placeholder-muted-foreground border border-border rounded-2xl px-4 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+              placeholder="Message #general"
+              className="flex-1 bg-input text-foreground placeholder-muted-foreground border border-border/50 rounded-lg px-4 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-primary text-sm font-medium"
               rows={1}
             />
           </div>

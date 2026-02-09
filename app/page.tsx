@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useAppStore } from '@/lib/store'
 import { mockUsers, mockChats } from '@/lib/mock-data'
 import { Sidebar } from '@/components/sidebar'
@@ -18,23 +18,19 @@ import { DeleteHistoryModal } from '@/components/delete-history-modal'
 import { DisappearingMessagesModal } from '@/components/disappearing-messages-modal'
 import { BlockUserModal } from '@/components/block-user-modal'
 import { ReportUserModal } from '@/components/report-user-modal'
-import { InvisibleModeModal } from '@/components/invisible-mode-modal'
 import { motion } from 'framer-motion'
 import type { Message, User } from '@/lib/types'
 
 export default function Home() {
   const [mounted, setMounted] = useState(false)
-  const [showProfile, setShowProfile] = useState(false)
-  const [showAddFriend, setShowAddFriend] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
-  const [showHiddenChats, setShowHiddenChats] = useState(false)
   const [showCloseChat, setShowCloseChat] = useState(false)
   const [showDeleteHistory, setShowDeleteHistory] = useState(false)
   const [showDisappearing, setShowDisappearing] = useState(false)
   const [showBlockUser, setShowBlockUser] = useState(false)
   const [showReportUser, setShowReportUser] = useState(false)
-  const [showInvisibleMode, setShowInvisibleMode] = useState(false)
   const [incomingCall, setIncomingCall] = useState<{ caller: User; type: 'voice' | 'video' } | null>(null)
+  const [onActiveCall, setOnActiveCall] = useState(false)
   const [visibleNotifications, setVisibleNotifications] = useState<string[]>([])
 
   const store = useAppStore()
@@ -108,12 +104,14 @@ export default function Home() {
     store.addMessage(activeChat.id, newMessage)
 
     // Show notification
-    const otherUser = activeChat.participants.find(p => p.id !== store.currentUser!.id)
+    const otherUser = activeChat.participants.find(p => p && p.id !== store.currentUser!.id)
     if (otherUser && store.notificationsEnabled) {
       const notifId = `notif_${Date.now()}`
       store.addNotification({
+        id: notifId,
         username: otherUser.displayName,
         message: content.substring(0, 50),
+        timestamp: new Date(),
         type: 'message',
       })
       setVisibleNotifications([...visibleNotifications, notifId])
@@ -132,12 +130,13 @@ export default function Home() {
     }, 2000)
   }
 
-  // Helper function to safely get the other user in a DM
-  const getOtherUser = () => {
-    if (!store.currentUser || !activeChat?.participants) return null
-    const otherUser = activeChat.participants.find(p => p && p.id !== store.currentUser.id)
-    return otherUser || null
-  }
+  const getOtherUser = useMemo(() => {
+    return () => {
+      if (!store.currentUser || !activeChat?.participants) return null
+      const otherUser = activeChat.participants.find(p => p && p.id !== store.currentUser.id)
+      return otherUser || null
+    }
+  }, [store.currentUser, activeChat])
 
   const handleCall = (type: 'voice' | 'video') => {
     const otherUser = getOtherUser()
@@ -151,25 +150,13 @@ export default function Home() {
 
   const handleAcceptCall = () => {
     if (incomingCall) {
-      // Would show active call screen
+      setOnActiveCall(true)
       setIncomingCall(null)
     }
   }
 
-  const handleAddFriend = (user: User) => {
-    if (!store.friends.find(f => f.id === user.id)) {
-      store.addFriend(user)
-      setShowAddFriend(false)
-    }
-  }
-
-  const handleUnlockHidden = (password: string) => {
-    if (password === 'secret123') {
-      console.log('[v0] Hidden chats unlocked')
-      setShowHiddenChats(false)
-    } else {
-      console.log('[v0] Wrong password')
-    }
+  const handleEndCall = () => {
+    setOnActiveCall(false)
   }
 
   const handleCloseChat = () => {
@@ -195,84 +182,77 @@ export default function Home() {
   }
 
   const handleBlockUser = () => {
-    if (activeChat) {
-      const otherUser = activeChat.participants.find(p => p.id !== store.currentUser!.id)
-      if (otherUser) {
-        store.blockUser(otherUser.id)
-        store.removeFriend(otherUser.id)
-        setShowBlockUser(false)
-      }
+    const otherUser = getOtherUser()
+    if (otherUser) {
+      store.blockUser(otherUser.id)
+      store.removeFriend(otherUser.id)
+      setShowBlockUser(false)
     }
   }
 
   const handleReportUser = (reason: string, description: string, blockAfterReport: boolean) => {
-    if (activeChat) {
-      const otherUser = activeChat.participants.find(p => p.id !== store.currentUser!.id)
-      if (otherUser) {
-        store.reportUser(otherUser.id, reason, description, blockAfterReport)
-        setShowReportUser(false)
-      }
+    const otherUser = getOtherUser()
+    if (otherUser) {
+      store.reportUser(otherUser.id, reason, description, blockAfterReport)
+      setShowReportUser(false)
     }
   }
 
   return (
     <div className="w-full h-screen flex bg-background overflow-hidden">
-      {/* Sidebar */}
-      <div className="w-80 hidden md:flex flex-col">
+      {/* Left Sidebar - Chat List */}
+      <div className="w-64 hidden md:flex flex-col border-r border-border bg-card">
         <Sidebar
           currentUser={store.currentUser}
           chats={store.chats}
           activeChatId={store.activeChatId}
           onChatSelect={store.setActiveChatId}
-          onUnlockHidden={() => setShowHiddenChats(true)}
+          onUnlockHidden={() => setShowCloseChat(true)}
         />
       </div>
 
       {/* Main Chat Area */}
-      {activeChat ? (
-        <div className="flex-1 flex flex-col">
-          {(() => {
-            if (!store.currentUser || !activeChat?.participants || activeChat.participants.length === 0) {
-              return null
-            }
-            
-            const otherUser = activeChat.participants.find(
-              p => p && store.currentUser && p.id !== store.currentUser.id
-            )
-            const blockedStatus = otherUser ? store.isUserBlocked(otherUser.id) : false
-            
-            return (
-              <ChatWindow
-                chat={activeChat}
-                currentUser={store.currentUser}
-                onSendMessage={handleSendMessage}
-                onCall={handleCall}
-                onClose={() => setShowCloseChat(true)}
-                onDelete={() => setShowDeleteHistory(true)}
-                onDisappearing={() => setShowDisappearing(true)}
-                onBlock={() => setShowBlockUser(true)}
-                onReport={() => setShowReportUser(true)}
-                onArchive={() => store.archiveChat(activeChat.id)}
-                isBlocked={blockedStatus}
-              />
-            )
-          })()}
+      {onActiveCall ? (
+        <div className="flex-1 bg-background">
+          <ActiveCallScreen
+            participant={getOtherUser()}
+            callType={incomingCall?.type || 'video'}
+            onEndCall={handleEndCall}
+            isMuted={false}
+            isVideoOn={true}
+          />
+        </div>
+      ) : activeChat ? (
+        <div className="flex-1 flex flex-col bg-background">
+          <ChatWindow
+            chat={activeChat}
+            currentUser={store.currentUser}
+            onSendMessage={handleSendMessage}
+            onCall={handleCall}
+            onClose={() => setShowCloseChat(true)}
+            onDelete={() => setShowDeleteHistory(true)}
+            onDisappearing={() => setShowDisappearing(true)}
+            onBlock={() => setShowBlockUser(true)}
+            onReport={() => setShowReportUser(true)}
+            onArchive={() => store.archiveChat(activeChat.id)}
+            isBlocked={getOtherUser() ? store.isUserBlocked(getOtherUser()!.id) : false}
+          />
         </div>
       ) : (
         <div className="flex-1 flex items-center justify-center bg-background">
           <div className="text-center">
-            <div className="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-2xl mx-auto mb-6" />
-            <h2 className="text-2xl font-bold text-foreground mb-2">No Chat Selected</h2>
-            <p className="text-muted-foreground">Select a chat to start messaging</p>
+            <div className="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-2xl mx-auto mb-6 opacity-20" />
+            <h2 className="text-2xl font-bold text-foreground mb-2">Select a Chat</h2>
+            <p className="text-muted-foreground">Choose a conversation to start messaging</p>
           </div>
         </div>
       )}
 
-      {/* Friends Sidebar - Hidden on mobile */}
-      <div className="w-80 hidden lg:flex flex-col">
+      {/* Right Sidebar - Friends List */}
+      <div className="w-64 hidden lg:flex flex-col border-l border-border bg-card overflow-y-auto">
         <FriendsList
           friends={store.friends}
-          onAddFriend={() => setShowAddFriend(true)}
+          onAddFriend={() => setShowSettings(true)}
           onMessage={(userId) => {
             const chat = store.chats.find(c => c.participants.some(p => p.id === userId))
             if (chat) {
@@ -283,23 +263,6 @@ export default function Home() {
       </div>
 
       {/* Modals */}
-      <ProfileModal
-        user={store.currentUser}
-        isOpen={showProfile}
-        onClose={() => setShowProfile(false)}
-        isEditable={true}
-        onSave={(updates) => {
-          store.setCurrentUser({ ...store.currentUser!, ...updates })
-        }}
-      />
-
-      <AddFriendModal
-        isOpen={showAddFriend}
-        onClose={() => setShowAddFriend(false)}
-        onAddFriend={handleAddFriend}
-        allUsers={Object.values(mockUsers).filter(u => u.id !== store.currentUser!.id)}
-      />
-
       <SettingsModal
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}
@@ -355,25 +318,12 @@ export default function Home() {
         user={getOtherUser()}
       />
 
-      <InvisibleModeModal
-        isOpen={showInvisibleMode}
-        onClose={() => setShowInvisibleMode(false)}
-        onToggle={store.setInvisibleMode}
-        isEnabled={store.privacySettings.invisibleMode}
-      />
-
       <IncomingCallModal
         isOpen={!!incomingCall}
-        caller={incomingCall?.caller || null}
+        caller={getOtherUser()}
         type={incomingCall?.type || 'voice'}
         onAccept={handleAcceptCall}
         onReject={() => setIncomingCall(null)}
-      />
-
-      <HiddenChatModal
-        isOpen={showHiddenChats}
-        onClose={() => setShowHiddenChats(false)}
-        onUnlock={handleUnlockHidden}
       />
 
       {/* Notifications */}

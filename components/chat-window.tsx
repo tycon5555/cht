@@ -47,38 +47,47 @@ export function ChatWindow({
 
   return (
     <div className="flex flex-col h-full bg-background">
-      {/* Header */}
-      <div className="border-b border-border p-4 flex items-center justify-between bg-card/50 backdrop-blur-sm">
-        <div className="flex items-center gap-3 flex-1">
-          <Avatar
-            src={chat.avatar}
-            alt={chat.name}
-            size="md"
-            online={!isGroupChat && otherUser?.online}
-          />
+      {/* Header - Discord Style */}
+      <div className="border-b border-border/50 px-4 py-3 flex items-center justify-between bg-card/70 backdrop-blur-md">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div className="relative flex-shrink-0">
+            <Avatar src={chat.avatar} alt={chat.name} size="md" />
+            {!isGroupChat && otherUser?.online && (
+              <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-card" />
+            )}
+          </div>
           <div className="flex-1 min-w-0">
-            <h2 className="font-semibold text-sm">{chat.name}</h2>
+            <h2 className="font-bold text-foreground">{chat.name}</h2>
             <p className="text-xs text-muted-foreground">
-              {isGroupChat ? `${chat.participants.length} members` : otherUser?.online ? 'Online' : `Last seen ${otherUser?.lastSeen || 'recently'}`}
+              {isGroupChat 
+                ? `${chat.participants.length} members` 
+                : otherUser?.online 
+                  ? '🟢 Online' 
+                  : `Last seen ${otherUser?.lastSeen || 'recently'}`
+              }
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+
+        {/* Action Buttons */}
+        <div className="flex items-center gap-1">
           <motion.button
-            whileHover={{ scale: 1.1 }}
+            whileHover={{ scale: 1.1, backgroundColor: 'rgba(79, 84, 92, 0.4)' }}
             whileTap={{ scale: 0.95 }}
             onClick={() => onCall('voice')}
             disabled={isBlocked || chat.closed}
-            className="p-2 hover:bg-muted rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-2 rounded-full hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            title="Voice call"
           >
             <Phone className="w-5 h-5 text-primary" />
           </motion.button>
           <motion.button
-            whileHover={{ scale: 1.1 }}
+            whileHover={{ scale: 1.1, backgroundColor: 'rgba(79, 84, 92, 0.4)' }}
             whileTap={{ scale: 0.95 }}
             onClick={() => onCall('video')}
             disabled={isBlocked || chat.closed}
-            className="p-2 hover:bg-muted rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-2 rounded-full hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            title="Video call"
           >
             <Video className="w-5 h-5 text-primary" />
           </motion.button>

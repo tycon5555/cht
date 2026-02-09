@@ -7,26 +7,27 @@ import { Avatar } from './avatar'
 import type { User } from '@/lib/types'
 
 interface ActiveCallScreenProps {
-  type: 'voice' | 'video'
-  recipientUser: User
-  currentUser: User
+  participant: User | null
+  callType: 'voice' | 'video'
   onEndCall: () => void
-  isGroupCall?: boolean
-  participants?: User[]
+  isMuted?: boolean
+  isVideoOn?: boolean
+  onMuteToggle?: () => void
+  onVideoToggle?: () => void
 }
 
 export function ActiveCallScreen({
-  type,
-  recipientUser,
-  currentUser,
+  participant,
+  callType,
   onEndCall,
-  isGroupCall = false,
-  participants = [],
+  isMuted = false,
+  isVideoOn = true,
+  onMuteToggle,
+  onVideoToggle,
 }: ActiveCallScreenProps) {
   const [duration, setDuration] = useState(0)
-  const [isMuted, setIsMuted] = useState(false)
-  const [isCameraOff, setIsCameraOff] = useState(false)
-  const [showParticipants, setShowParticipants] = useState(false)
+  const [localMuted, setLocalMuted] = useState(isMuted)
+  const [localVideoOn, setLocalVideoOn] = useState(isVideoOn)
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -41,7 +42,7 @@ export function ActiveCallScreen({
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
   }
 
-  if (type === 'video') {
+  if (callType === 'video') {
     return (
       <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
         {/* Main Remote Video Area */}
@@ -50,42 +51,30 @@ export function ActiveCallScreen({
             {/* Remote Video Placeholder */}
             <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
               <div className="text-center">
-                <Avatar
-                  src={recipientUser.avatar}
-                  alt={recipientUser.displayName}
-                  size="lg"
-                />
-                <p className="text-white mt-4 text-lg font-semibold">{recipientUser.displayName}</p>
+                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary to-secondary mx-auto flex items-center justify-center">
+                  {participant?.avatar && (
+                    <img src={participant.avatar} alt={participant.displayName} className="w-full h-full object-cover rounded-full" />
+                  )}
+                </div>
+                <p className="text-white mt-4 text-lg font-semibold">{participant?.displayName || 'Caller'}</p>
               </div>
             </div>
 
             {/* Local Video Preview (draggable) */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              drag
-              dragConstraints={{
-                left: -window.innerWidth / 2,
-                right: window.innerWidth / 2,
-                top: -window.innerHeight / 2,
-                bottom: window.innerHeight / 2,
-              }}
-              className="absolute bottom-6 right-6 w-32 h-40 bg-gradient-to-br from-secondary/30 to-primary/30 rounded-2xl border-2 border-white/20 overflow-hidden cursor-move shadow-2xl"
-            >
-              <div className="w-full h-full flex items-center justify-center">
-                {isCameraOff ? (
-                  <div className="w-full h-full bg-gray-800 flex items-center justify-center">
-                    <VideoOff className="w-8 h-8 text-white" />
+            {localVideoOn && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="absolute bottom-6 right-6 w-32 h-40 bg-gradient-to-br from-secondary/30 to-primary/30 rounded-2xl border-2 border-white/20 overflow-hidden shadow-2xl"
+              >
+                <div className="w-full h-full flex items-center justify-center bg-gray-800">
+                  <div className="text-center">
+                    <Video className="w-8 h-8 text-white mx-auto mb-2" />
+                    <p className="text-xs text-white">Your camera</p>
                   </div>
-                ) : (
-                  <Avatar
-                    src={currentUser.avatar}
-                    alt={currentUser.displayName}
-                    size="lg"
-                  />
-                )}
-              </div>
-            </motion.div>
+                </div>
+              </motion.div>
+            )}
 
             {/* Call Duration */}
             <motion.div
@@ -105,14 +94,17 @@ export function ActiveCallScreen({
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => setIsMuted(!isMuted)}
+                onClick={() => {
+                  setLocalMuted(!localMuted)
+                  onMuteToggle?.()
+                }}
                 className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
-                  isMuted
+                  localMuted
                     ? 'bg-red-600 hover:bg-red-700'
                     : 'bg-gray-700/50 hover:bg-gray-600'
                 }`}
               >
-                {isMuted ? (
+                {localMuted ? (
                   <MicOff className="w-5 h-5 text-white" />
                 ) : (
                   <Mic className="w-5 h-5 text-white" />
@@ -122,14 +114,17 @@ export function ActiveCallScreen({
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => setIsCameraOff(!isCameraOff)}
+                onClick={() => {
+                  setLocalVideoOn(!localVideoOn)
+                  onVideoToggle?.()
+                }}
                 className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
-                  isCameraOff
+                  !localVideoOn
                     ? 'bg-red-600 hover:bg-red-700'
                     : 'bg-gray-700/50 hover:bg-gray-600'
                 }`}
               >
-                {isCameraOff ? (
+                {!localVideoOn ? (
                   <VideoOff className="w-5 h-5 text-white" />
                 ) : (
                   <Video className="w-5 h-5 text-white" />
@@ -145,18 +140,6 @@ export function ActiveCallScreen({
                 <PhoneOff className="w-5 h-5 text-white" />
               </motion.button>
             </motion.div>
-
-            {/* Participants Grid (Group Calls) */}
-            {isGroupCall && participants.length > 1 && (
-              <motion.button
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                onClick={() => setShowParticipants(!showParticipants)}
-                className="absolute top-6 right-6 bg-gray-700/50 hover:bg-gray-600 text-white px-4 py-2 rounded-full text-sm font-medium"
-              >
-                {participants.length} Participants
-              </motion.button>
-            )}
           </div>
         </div>
       </div>
@@ -177,16 +160,16 @@ export function ActiveCallScreen({
           transition={{ duration: 2, repeat: Infinity }}
           className="mb-8"
         >
-          <Avatar
-            src={recipientUser.avatar}
-            alt={recipientUser.displayName}
-            size="lg"
-          />
+          <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary to-secondary mx-auto flex items-center justify-center overflow-hidden">
+            {participant?.avatar && (
+              <img src={participant.avatar} alt={participant?.displayName} className="w-full h-full object-cover" />
+            )}
+          </div>
         </motion.div>
 
         {/* Name & Duration */}
         <h2 className="text-3xl font-bold text-foreground mb-2">
-          {recipientUser.displayName}
+          {participant?.displayName || 'Caller'}
         </h2>
         <p className="text-lg text-muted-foreground font-mono mb-8">
           {formatDuration(duration)}
@@ -197,14 +180,17 @@ export function ActiveCallScreen({
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => setIsMuted(!isMuted)}
+            onClick={() => {
+              setLocalMuted(!localMuted)
+              onMuteToggle?.()
+            }}
             className={`w-16 h-16 rounded-full flex items-center justify-center transition-colors ${
-              isMuted
+              localMuted
                 ? 'bg-red-600 hover:bg-red-700'
                 : 'bg-gray-600 hover:bg-gray-700'
             }`}
           >
-            {isMuted ? (
+            {localMuted ? (
               <MicOff className="w-6 h-6 text-white" />
             ) : (
               <Mic className="w-6 h-6 text-white" />

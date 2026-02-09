@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Search, Plus, MoreVertical, Archive } from 'lucide-react'
+import { Search, Plus, Settings, MoreVertical, Archive } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { Avatar } from './avatar'
 import { ChatListItem } from './chat-list-item'
@@ -12,7 +12,7 @@ interface SidebarProps {
   chats: Chat[]
   activeChatId: string | null
   onChatSelect: (chatId: string) => void
-  onUnlockHidden: (password: string) => void
+  onUnlockHidden?: () => void
 }
 
 export function Sidebar({
@@ -33,115 +33,116 @@ export function Sidebar({
     chat.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const handleHiddenSearch = () => {
-    if (searchQuery === 'secret123') {
-      const hiddenChats = chats.filter((c) => c.hidden)
-      // Show hidden chats temporarily
-      console.log('[v0] Hidden chats unlocked:', hiddenChats)
-    }
-  }
-
   return (
-    <div className="h-full flex flex-col bg-card border-r border-border">
-      {/* Profile & Title */}
-      <div className="p-4 border-b border-border">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold">Messenger</h1>
-          <div className="flex gap-2">
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-              className="p-2 hover:bg-muted rounded-full"
-            >
-              <Plus className="w-5 h-5 text-primary" />
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-              className="p-2 hover:bg-muted rounded-full"
-            >
-              <MoreVertical className="w-5 h-5 text-muted-foreground" />
-            </motion.button>
+    <div className="h-full flex flex-col bg-card">
+      {/* Header - Discord Style */}
+      <div className="p-3 border-b border-border/50">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center">
+              <span className="text-sm font-bold text-white">#</span>
+            </div>
+            <h1 className="text-lg font-bold text-foreground">Messages</h1>
           </div>
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+            className="p-2 hover:bg-muted rounded-lg transition-colors"
+          >
+            <Plus className="w-5 h-5 text-primary" />
+          </motion.button>
         </div>
-        <div className="flex items-center gap-2 bg-input rounded-full px-3 py-2">
-          <Search className="w-4 h-4 text-muted-foreground" />
+
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search chats or unlock hidden..."
+            placeholder="Search conversations..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleHiddenSearch()}
-            className="bg-transparent flex-1 text-sm focus:outline-none text-foreground placeholder-muted-foreground"
+            className="w-full pl-9 pr-3 py-2 bg-input border border-border/50 rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
-      </div>
-
-      {/* Profile Preview */}
-      <div className="px-4 py-3 border-b border-border">
-        <button className="flex items-center gap-3 w-full hover:bg-muted p-2 rounded-lg transition-colors">
-          <Avatar
-            src={currentUser.avatar}
-            alt={currentUser.displayName}
-            size="md"
-            online={currentUser.online}
-          />
-          <div className="text-left flex-1 min-w-0">
-            <p className="font-semibold text-sm">{currentUser.displayName}</p>
-            <p className="text-xs text-muted-foreground truncate">@{currentUser.username}</p>
-          </div>
-          {totalUnread > 0 && (
-            <div className="bg-destructive text-destructive rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
-              {totalUnread}
-            </div>
-          )}
-        </button>
       </div>
 
       {/* Chat List */}
       <div className="flex-1 overflow-y-auto">
-        {filteredChats.length === 0 ? (
-          <div className="p-4 text-center">
-            <p className="text-sm text-muted-foreground">No chats found</p>
+        {/* Active Chats */}
+        {filteredChats.length > 0 ? (
+          <div className="space-y-1 p-2">
+            {filteredChats.map((chat) => (
+              <motion.div
+                key={chat.id}
+                whileHover={{ x: 4 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <ChatListItem
+                  chat={chat}
+                  isActive={activeChatId === chat.id}
+                  onSelect={() => onChatSelect(chat.id)}
+                />
+              </motion.div>
+            ))}
           </div>
         ) : (
-          <div className="p-2">
-            {filteredChats.map((chat) => (
-              <ChatListItem
-                key={chat.id}
-                chat={chat}
-                isActive={activeChatId === chat.id}
-                onClick={() => onChatSelect(chat.id)}
-              />
-            ))}
+          <div className="p-4 text-center text-muted-foreground">
+            {searchQuery ? 'No conversations found' : 'No active conversations'}
+          </div>
+        )}
+
+        {/* Archived Chats */}
+        {archivedChats.length > 0 && (
+          <div className="border-t border-border/50 p-2">
+            <motion.button
+              onClick={() => setShowArchived(!showArchived)}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+            >
+              <Archive className="w-4 h-4" />
+              <span>Archived ({archivedChats.length})</span>
+            </motion.button>
+
+            {showArchived && (
+              <div className="space-y-1 mt-2">
+                {archivedChats.map((chat) => (
+                  <motion.div key={chat.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                    <ChatListItem
+                      chat={chat}
+                      isActive={activeChatId === chat.id}
+                      onSelect={() => onChatSelect(chat.id)}
+                    />
+                  </motion.div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* Archived Section */}
-      {archivedChats.length > 0 && (
-        <div className="border-t border-border">
-          <button
-            onClick={() => setShowArchived(!showArchived)}
-            className="w-full px-4 py-3 flex items-center gap-2 hover:bg-muted transition-colors text-sm text-muted-foreground hover:text-foreground"
+      {/* Footer - User Profile */}
+      <div className="border-t border-border/50 p-3">
+        <motion.div
+          whileHover={{ scale: 1.02 }}
+          className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+        >
+          <Avatar
+            src={currentUser.avatar}
+            alt={currentUser.displayName}
+            size="sm"
+          />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-foreground truncate">{currentUser.displayName}</p>
+            <p className="text-xs text-muted-foreground truncate">@{currentUser.username}</p>
+          </div>
+          <motion.button
+            whileHover={{ scale: 1.15 }}
+            whileTap={{ scale: 0.95 }}
+            className="p-1.5 hover:bg-muted rounded transition-colors"
           >
-            <Archive className="w-4 h-4" />
-            Archived ({archivedChats.length})
-          </button>
-          {showArchived && (
-            <div className="px-2 pb-2">
-              {archivedChats.map((chat) => (
-                <ChatListItem
-                  key={chat.id}
-                  chat={chat}
-                  isActive={activeChatId === chat.id}
-                  onClick={() => onChatSelect(chat.id)}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+            <Settings className="w-4 h-4 text-muted-foreground" />
+          </motion.button>
+        </motion.div>
+      </div>
     </div>
   )
 }
